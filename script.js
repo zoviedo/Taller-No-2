@@ -31,6 +31,7 @@ taskForm.addEventListener("submit", async (e) => {
     }
 });
 
+//actualizar tareas
 async function loadTasks() {
     const storedTasks = localStorage.getItem("tareas");
     let tasks = storedTasks ? JSON.parse(storedTasks) : [];
@@ -39,7 +40,7 @@ async function loadTasks() {
         const res = await fetch(API_URL);
         if (res.ok) {
             tasks = await res.json();
-            localStorage.setItem("tareas", JSON.stringify(tasks)); // Actualizar LocalStorage
+            localStorage.setItem("tareas", JSON.stringify(tasks));
         }
     } catch (error) {
         console.error("Error al conectar con el backend:", error);
@@ -55,17 +56,26 @@ async function loadTasks() {
 
     tasks.forEach(task => {
         const li = document.createElement("li");
+        if (task.completada) {
+            li.classList.add("task-item", "completed");
+        } else {
+            li.classList.add("task-item");
+        }
+
         li.innerHTML = `
-            <div>
-                <strong>${task.titulo}</strong> - 
-                <span class="${task.completada ? "completed" : ""}" 
-                    ondblclick="editTask(${task.id}, '${task.titulo}', '${task.descripcion}')">
-                    ${task.descripcion}
+            <span class="task-title">${task.titulo}</span>
+            <span class="task-desc">${task.descripcion}</span>
+            <span class="task-editar" 
+                    onclick="editTask(${task.id}, '${task.titulo}', '${task.descripcion}')">
+                    Editar
                 </span>
+            <span class="task-status">${task.completada ? "Completada" : "Pendiente"}</span>
+            <div class="task-buttons">
+                <button onclick="toggleTask(${task.id})">✔️</button>
+                <button onclick="deleteTask(${task.id})">❌</button>
             </div>
-            <button onclick="toggleTask(${task.id})">✔️</button>
-            <button onclick="deleteTask(${task.id})">❌</button>
         `;
+
         taskList.appendChild(li);
     });
 }
