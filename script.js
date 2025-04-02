@@ -1,4 +1,5 @@
 const taskForm = document.getElementById("task-form");
+const taskTitle = document.getElementById("task-title");
 const taskInput = document.getElementById("task-input");
 const taskList = document.getElementById("task-list");
 
@@ -13,18 +14,20 @@ document.getElementById("filter").addEventListener("change", loadTasks);
 // Agregar nueva tarea
 taskForm.addEventListener("submit", async (e) => {
     e.preventDefault();
+    const titleText = taskTitle.value.trim();
     const taskText = taskInput.value.trim();
-    if (taskText === "") return;
+    if (titleText === "" || taskText === "") return;
 
     const res = await fetch(API_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ descripcion: taskText }),
+        body: JSON.stringify({ titulo: titleText, descripcion: taskText }),
     });
 
     if (res.ok) {
+        taskTitle.value = "";
         taskInput.value = "";
-        loadTasks(); // Recargar la lista
+        loadTasks();
     }
 });
 
@@ -53,7 +56,13 @@ async function loadTasks() {
     tasks.forEach(task => {
         const li = document.createElement("li");
         li.innerHTML = `
-            <span class="${task.completada ? "completed" : ""}" ondblclick="editTask(${task.id}, '${task.descripcion}')">${task.descripcion}</span>
+            <div>
+                <strong>${task.titulo}</strong> - 
+                <span class="${task.completada ? "completed" : ""}" 
+                    ondblclick="editTask(${task.id}, '${task.titulo}', '${task.descripcion}')">
+                    ${task.descripcion}
+                </span>
+            </div>
             <button onclick="toggleTask(${task.id})">✔️</button>
             <button onclick="deleteTask(${task.id})">❌</button>
         `;
@@ -63,14 +72,15 @@ async function loadTasks() {
 
 
 // Función para editar tarea
-async function editTask(id, oldText) {
-    const newText = prompt("Editar tarea:", oldText);
-    if (!newText || newText.trim() === oldText) return;
+async function editTask(id, oldTitle, oldDesc) {
+    const newTitle = prompt("Editar título:", oldTitle);
+    const newDesc = prompt("Editar descripción:", oldDesc);
+    if (!newTitle || !newDesc) return;
 
     await fetch(`${API_URL}/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ descripcion: newText }),
+        body: JSON.stringify({ titulo: newTitle, descripcion: newDesc }),
     });
 
     loadTasks();
@@ -79,7 +89,11 @@ async function editTask(id, oldText) {
 
 // Marcar tarea como completada
 async function toggleTask(id) {
-    await fetch(`${API_URL}/${id}`, { method: "PUT" });
+    await fetch(`${API_URL}/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ completada: true }) // Alternar el estado
+    });
     loadTasks();
 }
 

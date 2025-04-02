@@ -18,13 +18,14 @@ const db = new sqlite3.Database("./tareas.db", (err) => {
 });
 
 // Crear la tabla de tareas si no existe
-db.run(
-  `CREATE TABLE IF NOT EXISTS tareas (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    descripcion TEXT,
-    completada BOOLEAN
-  )`
-);
+db.run(`
+  CREATE TABLE IF NOT EXISTS tareas (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      titulo TEXT,
+      descripcion TEXT,
+      completada BOOLEAN
+  )
+`);
 
 // Endpoint para obtener todas las tareas
 app.get("/tareas", (req, res) => {
@@ -39,43 +40,50 @@ app.get("/tareas", (req, res) => {
 
 // Endpoint para agregar una nueva tarea
 app.post("/tareas", (req, res) => {
-  const { descripcion } = req.body;
+  const { titulo, descripcion } = req.body;
   db.run(
-    "INSERT INTO tareas (descripcion, completada) VALUES (?, ?)",
-    [descripcion, false],
-    function (err) {
-      if (err) {
-        res.status(500).json({ error: err.message });
-      } else {
-        res.json({ id: this.lastID, descripcion, completada: false });
+      "INSERT INTO tareas (titulo, descripcion, completada) VALUES (?, ?, ?)",
+      [titulo, descripcion, false],
+      function (err) {
+          if (err) {
+              res.status(500).json({ error: err.message });
+          } else {
+              res.json({ id: this.lastID, titulo, descripcion, completada: false });
+          }
       }
-    }
   );
 });
 
 // Endpoint para marcar una tarea como completada
 app.put("/tareas/:id", (req, res) => {
   const { id } = req.params;
-  const { descripcion } = req.body;
+  const { titulo, descripcion, completada } = req.body; 
 
-  if (descripcion !== undefined) {
-      db.run("UPDATE tareas SET descripcion = ? WHERE id = ?", [descripcion, id], function (err) {
+  if (titulo !== undefined && descripcion !== undefined) {
+      db.run(
+        "UPDATE tareas SET titulo = COALESCE(?, titulo), descripcion = COALESCE(?, descripcion) WHERE id = ?",
+        [titulo, descripcion, id],
+        function (err) {
+            if (err) {
+                res.status(500).json({ error: err.message });
+            } else {
+                res.json({ message: "Tarea actualizada correctamente" });
+            }
+        }
+    );
+  } else if (completada !== undefined) {
+      db.run("UPDATE tareas SET completada = ? WHERE id = ?", [completada, id], function (err) {
           if (err) {
               res.status(500).json({ error: err.message });
           } else {
-              res.json({ message: "Tarea editada correctamente" });
+              res.json({ message: "Estado actualizado" });
           }
       });
   } else {
-      db.run("UPDATE tareas SET completada = NOT completada WHERE id = ?", [id], function (err) {
-          if (err) {
-              res.status(500).json({ error: err.message });
-          } else {
-              res.json({ message: "Estado de tarea actualizado" });
-          }
-      });
+      res.status(400).json({ error: "Datos inválidos" });
   }
 });
+
 
 
 // Endpoint para eliminar una tarea
