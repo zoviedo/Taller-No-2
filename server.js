@@ -21,8 +21,10 @@ const db = new sqlite3.Database("./tareas.db", (err) => {
 db.run(
   `CREATE TABLE IF NOT EXISTS tareas (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    descripcion TEXT,
-    completada BOOLEAN
+    descripcion TEXT NOT NULL,
+    completada BOOLEAN DEFAULT 0,
+    fecha_creacion DATETIME DEFAULT CURRENT_TIMESTAMP,
+    fecha_actualizacion DATETIME DEFAULT CURRENT_TIMESTAMP
   )`
 );
 
@@ -40,15 +42,24 @@ app.get("/tareas", (req, res) => {
 // Endpoint para agregar una nueva tarea
 app.post("/tareas", (req, res) => {
   const { descripcion } = req.body;
+  
+  if (!descripcion || descripcion.trim().length === 0) {
+    return res.status(400).json({ error: "La descripción es requerida" });
+  }
+
   db.run(
     "INSERT INTO tareas (descripcion, completada) VALUES (?, ?)",
-    [descripcion, false],
+    [descripcion.trim(), false],
     function (err) {
       if (err) {
-        res.status(500).json({ error: err.message });
-      } else {
-        res.json({ id: this.lastID, descripcion, completada: false });
+        return res.status(500).json({ error: err.message });
       }
+      res.json({ 
+        id: this.lastID, 
+        descripcion, 
+        completada: false,
+        fecha_creacion: new Date().toISOString()
+      });
     }
   );
 });
