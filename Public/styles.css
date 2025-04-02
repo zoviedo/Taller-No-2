@@ -2,7 +2,7 @@ body {
     font-family: Arial, sans-serif;
     background-color: #f4f4f4;
     margin: 0;
-    padding: 20px;
+    padding: 0;
 }
 
 .main-container {
@@ -11,6 +11,7 @@ body {
     gap: 20px;
     max-width: 1200px;
     margin: 0 auto;
+    padding: 20px;
 }
 
 /* Estilos para la sección del formulario */
@@ -166,4 +167,37 @@ li {
 
 .empty-state small {
     color: #999;
+}
+
+/* Estilos para el header */
+.main-header {
+    background-color: #007bff;
+    color: white;
+    padding: 1rem;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.header-content {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.header-content i {
+    font-size: 24px;
+}
+
+.header-content h1 {
+    margin: 0;
+    font-size: 24px;
+}
+
+/* Estilos para los títulos de sección */
+.section-title {
+    color: #007bff;
+    margin-bottom: 20px;
+    font-size: 20px;
 }
