@@ -1,12 +1,14 @@
 const express = require("express");
 const sqlite3 = require("sqlite3").verbose();
 const cors = require("cors");
+const path = require("path");
 
 const app = express();
 const port = 3000;
 
 app.use(express.json());
 app.use(cors());
+app.use(express.static(path.join(__dirname, 'public')));
 
 // Conectar a la base de datos SQLite
 const db = new sqlite3.Database("./tareas.db", (err) => {
@@ -21,34 +23,53 @@ const db = new sqlite3.Database("./tareas.db", (err) => {
 db.run(
   `CREATE TABLE IF NOT EXISTS tareas (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    descripcion TEXT,
-    completada BOOLEAN
+    titulo TEXT NOT NULL,
+    descripcion TEXT NOT NULL,
+    completada BOOLEAN DEFAULT 0,
+    fecha_creacion DATETIME DEFAULT CURRENT_TIMESTAMP,
+    fecha_actualizacion DATETIME DEFAULT CURRENT_TIMESTAMP
   )`
 );
+
+// Ruta principal
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
 
 // Endpoint para obtener todas las tareas
 app.get("/tareas", (req, res) => {
   db.all("SELECT * FROM tareas", [], (err, filas) => {
     if (err) {
       res.status(500).json({ error: err.message });
-    } else {
-      res.json(filas);
+      return;
     }
+    // Siempre devolver un array, incluso si está vacío
+    res.json(filas || []);
   });
 });
 
 // Endpoint para agregar una nueva tarea
 app.post("/tareas", (req, res) => {
-  const { descripcion } = req.body;
+  const { titulo, descripcion } = req.body;
+  
+  if (!titulo || !descripcion) {
+    return res.status(400).json({ error: "El título y la descripción son requeridos" });
+  }
+
   db.run(
-    "INSERT INTO tareas (descripcion, completada) VALUES (?, ?)",
-    [descripcion, false],
+    "INSERT INTO tareas (titulo, descripcion, completada) VALUES (?, ?, ?)",
+    [titulo.trim(), descripcion.trim(), false],
     function (err) {
       if (err) {
-        res.status(500).json({ error: err.message });
-      } else {
-        res.json({ id: this.lastID, descripcion, completada: false });
+        return res.status(500).json({ error: err.message });
       }
+      res.json({ 
+        id: this.lastID, 
+        titulo,
+        descripcion, 
+        completada: false,
+        fecha_creacion: new Date().toISOString()
+      });
     }
   );
 });
@@ -56,24 +77,32 @@ app.post("/tareas", (req, res) => {
 // Endpoint para marcar una tarea como completada
 app.put("/tareas/:id", (req, res) => {
   const { id } = req.params;
-  const { descripcion } = req.body;
+  const { titulo, descripcion, completada } = req.body;
 
-  if (descripcion !== undefined) {
-      db.run("UPDATE tareas SET descripcion = ? WHERE id = ?", [descripcion, id], function (err) {
-          if (err) {
-              res.status(500).json({ error: err.message });
-          } else {
-              res.json({ message: "Tarea editada correctamente" });
-          }
-      });
-  } else {
-      db.run("UPDATE tareas SET completada = NOT completada WHERE id = ?", [id], function (err) {
-          if (err) {
-              res.status(500).json({ error: err.message });
-          } else {
-              res.json({ message: "Estado de tarea actualizado" });
-          }
-      });
+  if (titulo !== undefined || descripcion !== undefined) {
+    db.run(
+      "UPDATE tareas SET titulo = COALESCE(?, titulo), descripcion = COALESCE(?, descripcion), fecha_actualizacion = CURRENT_TIMESTAMP WHERE id = ?",
+      [titulo, descripcion, id],
+      function (err) {
+        if (err) {
+          res.status(500).json({ error: err.message });
+        } else {
+          res.json({ message: "Tarea actualizada correctamente" });
+        }
+      }
+    );
+  } else if (completada !== undefined) {
+    db.run(
+      "UPDATE tareas SET completada = ?, fecha_actualizacion = CURRENT_TIMESTAMP WHERE id = ?",
+      [completada, id],
+      function (err) {
+        if (err) {
+          res.status(500).json({ error: err.message });
+        } else {
+          res.json({ message: "Estado de tarea actualizado" });
+        }
+      }
+    );
   }
 });
 
