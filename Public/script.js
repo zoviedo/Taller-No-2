@@ -110,7 +110,16 @@ async function editTask(id, oldTitle, oldDescription) {
 
 // Marcar tarea como completada
 async function toggleTask(id) {
-    await fetch(`${API_URL}/${id}`, { method: "PUT" });
+    const tasks = JSON.parse(localStorage.getItem("tareas"));
+    const task = tasks.find(t => t.id === id);
+    const newCompletedState = !task.completada;
+
+    await fetch(`${API_URL}/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ completada: newCompletedState })
+    });
+    
     loadTasks();
 }
 

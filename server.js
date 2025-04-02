@@ -77,33 +77,24 @@ app.post("/tareas", (req, res) => {
 // Endpoint para marcar una tarea como completada
 app.put("/tareas/:id", (req, res) => {
   const { id } = req.params;
-  const { titulo, descripcion, completada } = req.body;
+  const { titulo, descripcion, completada } = req.body || {};
 
-  if (titulo !== undefined || descripcion !== undefined) {
-    db.run(
-      "UPDATE tareas SET titulo = COALESCE(?, titulo), descripcion = COALESCE(?, descripcion), fecha_actualizacion = CURRENT_TIMESTAMP WHERE id = ?",
-      [titulo, descripcion, id],
-      function (err) {
-        if (err) {
-          res.status(500).json({ error: err.message });
-        } else {
-          res.json({ message: "Tarea actualizada correctamente" });
-        }
-      }
-    );
-  } else if (completada !== undefined) {
-    db.run(
-      "UPDATE tareas SET completada = ?, fecha_actualizacion = CURRENT_TIMESTAMP WHERE id = ?",
-      [completada, id],
-      function (err) {
-        if (err) {
-          res.status(500).json({ error: err.message });
-        } else {
-          res.json({ message: "Estado de tarea actualizado" });
-        }
-      }
-    );
+  let completadaValue = completada;
+  if (completadaValue !== undefined) {
+    completadaValue = completadaValue ? 1 : 0;
   }
+  
+  db.run(
+    "UPDATE tareas SET titulo = COALESCE(?, titulo), descripcion = COALESCE(?, descripcion), completada = COALESCE(?, completada), fecha_actualizacion = CURRENT_TIMESTAMP WHERE id = ?",
+    [titulo, descripcion, completadaValue, id],
+    function (err) {
+      if (err) {
+        res.status(500).json({ error: err.message });
+      } else {
+        res.json({ message: "Tarea actualizada correctamente" });
+      }
+    }
+  );
 });
 
 
